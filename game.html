@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html>
+
+<head> </head>
+
+<body>
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Ganesha: The Divine Path 3D</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+
+            body,
+            html {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background-color: #0d0402;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+
+            #game-canvas {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+
+            /* Glassmorphism HUD */
+            #hud {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                padding: 18px 24px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                pointer-events: none;
+                z-index: 10;
+            }
+
+            .hud-card {
+                background: rgba(30, 10, 5, 0.65);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(243, 156, 18, 0.4);
+                border-radius: 12px;
+                padding: 10px 18px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                color: #ffd700;
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            }
+
+            .stat-label {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                color: #fce4b8;
+            }
+
+            .stat-value {
+                font-size: 24px;
+                font-weight: 800;
+            }
+
+            /* Ultimate Ability Bar */
+            #ultimate-container {
+                width: 180px;
+                margin-top: 6px;
+            }
+
+            #ultimate-bar-bg {
+                width: 100%;
+                height: 10px;
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 5px;
+                overflow: hidden;
+                border: 1px solid rgba(255, 215, 0, 0.5);
+            }
+
+            #ultimate-bar-fill {
+                width: 0%;
+                height: 100%;
+                background: linear-gradient(90deg, #e67e22, #f1c40f, #ffffff);
+                box-shadow: 0 0 12px #f1c40f;
+                transition: width 0.2s ease;
+            }
+
+            #blast-hint {
+                font-size: 10px;
+                color: #fff;
+                display: none;
+                animation: pulse 1s infinite alternate;
+                margin-top: 4px;
+                font-weight: bold;
+            }
+
+            /* Fullscreen Overlays */
+            .overlay {
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(circle at center, rgba(30, 8, 3, 0.88), rgba(10, 2, 1, 0.98));
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 20;
+                color: #fff;
+                text-align: center;
+                padding: 20px;
+            }
+
+            .game-title {
+                font-size: clamp(32px, 5vw, 54px);
+                font-weight: 900;
+                background: linear-gradient(45deg, #ffd700, #ff8c00, #fff2a3);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                text-transform: uppercase;
+                letter-spacing: 3px;
+                margin-bottom: 8px;
+                filter: drop-shadow(0 0 20px rgba(255, 140, 0, 0.5));
+            }
+
+            .subtitle {
+                color: #f7d794;
+                font-size: 16px;
+                margin-bottom: 28px;
+                max-width: 480px;
+                line-height: 1.5;
+            }
+
+            .controls-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 215, 0, 0.25);
+                border-radius: 12px;
+                padding: 16px 24px;
+                margin-bottom: 30px;
+                text-align: left;
+                font-size: 14px;
+            }
+
+            .controls-grid span {
+                color: #ffd700;
+                font-weight: bold;
+            }
+
+            .btn-gold {
+                background: linear-gradient(135deg, #f39c12, #d35400);
+                color: #fff;
+                border: 2px solid #ffd700;
+                border-radius: 30px;
+                padding: 14px 44px;
+                font-size: 18px;
+                font-weight: 800;
+                cursor: pointer;
+                box-shadow: 0 0 25px rgba(243, 156, 18, 0.6);
+                transition: all 0.2s ease;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                pointer-events: auto;
+            }
+
+            .btn-gold:hover {
+                transform: scale(1.06);
+                box-shadow: 0 0 35px rgba(255, 215, 0, 0.9);
+            }
+
+            /* Audio toggle icon */
+            #sound-toggle {
+                position: absolute;
+                bottom: 20px;
+                right: 20px;
+                background: rgba(30, 10, 5, 0.7);
+                border: 1px solid #ffd700;
+                color: #ffd700;
+                padding: 10px 14px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 18px;
+                z-index: 30;
+            }
+
+            /* Mobile virtual touch triggers */
+            #mobile-controls {
+                display: none;
+                position: absolute;
+                bottom: 20px;
+                left: 0;
+                width: 100%;
+                padding: 0 20px;
+                justify-content: space-between;
+                pointer-events: none;
+                z-index: 15;
+            }
+
+            .touch-btn {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                background: rgba(243, 156, 18, 0.3);
+                border: 2px solid #ffd700;
+                color: white;
+                font-size: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: auto;
+            }
+
+            @keyframes pulse {
+                from {
+                    opacity: 0.6;
+                    transform: scale(0.98);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: scale(1.02);
+                }
+            }
+
+            @media (max-width: 768px) {
+                #mobile-controls {
+                    display: flex;
+                }
+            }
+        </style>
+        <!-- Three.js from CDN -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    </head>
+
+    <body>
+
+        <div id="hud">
+            <div class="hud-card">
+                <div class="stat-label">Modaks Offered</div>
+                <div class="stat-value" id="score-val">0</div>
+            </div>
+            <div class="hud-card" style="text-align: right;">
+                <div class="stat-label">Divine Power</div>
+                <div id="ultimate-container">
+                    <div id="ultimate-bar-bg">
+                        <div id="ultimate-bar-fill"></div>
+                    </div>
+                    <div id="blast-hint">PRESS 'E' FOR VIGHNAHARTA BLAST!</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sound-toggle" onclick="toggleSound()">🔔</div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="overlay">
+            <h1 class="game-title">Ganesha</h1>
+            <p class="subtitle">The Divine Temple Run. Gather sacred golden Modaks, leap over obstacles, and clear the sanctum with divine power!</p>
+            <div class="controls-grid">
+                <div><span>A / D / ← → :</span> Change Lane</div>
+                <div><span>W / Space / ↑ :</span> Divine Leap</div>
+                <div><span>S / ↓ :</span> Low Slide</div>
+                <div><span>E / Touch Button :</span> Vighnaharta Blast</div>
+            </div>
+            <button class="btn-gold" onclick="startGame()">Start Journey</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="overlay" style="display: none;">
+            <h1 class="game-title" style="color: #e74c3c;">Sacred Pause</h1>
+            <p class="subtitle" id="game-over-desc">You completed your run through the sacred halls.</p>
+            <div class="hud-card" style="margin-bottom: 24px; min-width: 200px;">
+                <div class="stat-label">Total Modaks</div>
+                <div class="stat-value" id="final-score">0</div>
+            </div>
+            <button class="btn-gold" onclick="startGame()">Invoke Again</button>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div id="mobile-controls">
+            <div style="display: flex; gap: 12px;">
+                <div class="touch-btn" onclick="moveLane(-1)">◀</div>
+                <div class="touch-btn" onclick="moveLane(1)">▶</div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <div class="touch-btn" onclick="triggerSlide()">▼</div>
+                <div class="touch-btn" onclick="triggerJump()">▲</div>
+                <div class="touch-btn" style="background: rgba(231,76,60,0.5);" onclick="triggerUltimate()">💥</div>
+            </div>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <script>
+            /* ==========================================================================
+       SYNTHESIZED SOUND ENGINE (Web Audio API - 100% self-contained)
+       ========================================================================== */
+            let audioCtx = null;
+            let soundEnabled = true;
+
+            function initAudio() {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContext();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            }
+
+            function toggleSound() {
+                soundEnabled = !soundEnabled;
+                document.getElementById('sound-toggle').textContent = soundEnabled ? '🔔' : '🔕';
+            }
+
+            function playSound(type) {
+                if (!soundEnabled) return;
+                initAudio();
+                const now = audioCtx.currentTime;
+
+                if (type === 'chime') {
+                    // High bronze temple bell harmonic
+                    const osc1 = audioCtx.createOscillator();
+                    const osc2 = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc1.frequency.setValueAtTime(880, now); // A5
+                    osc2.frequency.setValueAtTime(1760, now);
+
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc1.start(now);
+                    osc2.start(now);
+                    osc1.stop(now + 0.8);
+                    osc2.stop(now + 0.8);
+                } else if (type === 'jump') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(550, now + 0.25);
+
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'blast') {
+                    // Low rumble shockwave
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(140, now);
+                    osc.frequency.exponentialRampToValueAtTime(30, now + 0.6);
+
+                    gain.gain.setValueAtTime(0.5, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                } else if (type === 'crash') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, now);
+                    osc.frequency.linearRampToValueAtTime(40, now + 0.4);
+
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            }
+
+            /* ==========================================================================
+               THREE.JS 3D SCENE & ENGINE SETUP
+               ========================================================================== */
+            const canvas = document.getElementById('game-canvas');
+            const renderer = new THREE.WebGLRenderer({
+                canvas,
+                antialias: true,
+                powerPreference: 'high-performance'
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x120402);
+            scene.fog = new THREE.FogExp2(0x140502, 0.022);
+
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 150);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffecd0, 0.7);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffa834, 1.2);
+            sunLight.position.set(10, 20, -15);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 60;
+            scene.add(sunLight);
+
+            // Warm temple rim light
+            const backRimLight = new THREE.DirectionalLight(0x9b59b6, 0.5);
+            backRimLight.position.set(-10, 10, 20);
+            scene.add(backRimLight);
+
+            /* ==========================================================================
+               GAME STATE & CONFIGURATION
+               ========================================================================== */
+            const LANES = [-3.2, 0, 3.2];
+            let currentLane = 1;
+            let isPlaying = false;
+            let score = 0;
+            let divinePower = 0;
+            let baseSpeed = 22;
+            let speed = baseSpeed;
+            const clock = new THREE.Clock();
+
+            // Physics
+            let playerY = 0;
+            let playerVelocityY = 0;
+            const GRAVITY = -34;
+            const JUMP_FORCE = 13.5;
+            let isSliding = false;
+            let slideTimer = 0;
+
+            /* ==========================================================================
+               PROCEDURAL 3D GANESHA MODEL
+               ========================================================================== */
+            const ganeshaGroup = new THREE.Group();
+
+            // Shared Materials
+            const goldMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffd700,
+                metalness: 0.85,
+                roughness: 0.25,
+                emissive: 0x614900,
+                emissiveIntensity: 0.2
+            });
+
+            const skinMaterial = new THREE.MeshStandardMaterial({
+                color: 0xf5a56f,
+                roughness: 0.6,
+                metalness: 0.05
+            });
+
+            const dhotiMaterial = new THREE.MeshStandardMaterial({
+                color: 0xe67e22,
+                roughness: 0.5
+            });
+
+            // Body (Round, divine tummy)
+            const bellyGeo = new THREE.SphereGeometry(0.85, 24, 24);
+            const bellyMesh = new THREE.Mesh(bellyGeo, dhotiMaterial);
+            bellyMesh.position.y = 1.0;
+            bellyMesh.scale.set(1.05, 0.95, 1.0);
+            bellyMesh.castShadow = true;
+            ganeshaGroup.add(bellyMesh);
+
+            // Chest / Upper Torso
+            const torsoGeo = new THREE.SphereGeometry(0.7, 24, 24);
+            const torsoMesh = new THREE.Mesh(torsoGeo, skinMaterial);
+            torsoMesh.position.y = 1.6;
+            torsoMesh.castShadow = true;
+            ganeshaGroup.add(torsoMesh);
+
+            // Sacred Yellow Sash (Angavastram)
+            const sashGeo = new THREE.TorusGeometry(0.72, 0.07, 12, 32);
+            const sashMesh = new THREE.Mesh(sashGeo, goldMaterial);
+            sashMesh.position.set(0, 1.6, 0);
+            sashMesh.rotation.x = Math.PI / 4;
+            sashMesh.rotation.y = Math.PI / 6;
+            ganeshaGroup.add(sashMesh);
+
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.6, 24, 24);
+            const headMesh = new THREE.Mesh(headGeo, skinMaterial);
+            headMesh.position.set(0, 2.3, 0.05);
+            headMesh.castShadow = true;
+            ganeshaGroup.add(headMesh);
+
+            // Tilak (Red Tripundra Mark on Forehead)
+            const tilakGeo = new THREE.BoxGeometry(0.08, 0.2, 0.02);
+            const tilakMat = new THREE.MeshBasicMaterial({
+                color: 0xc0392b
+            });
+            const tilakMesh = new THREE.Mesh(tilakGeo, tilakMat);
+            tilakMesh.position.set(0, 2.45, 0.62);
+            ganeshaGroup.add(tilakMesh);
+
+            // Curved Trunk
+            const trunkCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0, 2.3, 0.55),
+                new THREE.Vector3(0, 2.0, 0.85),
+                new THREE.Vector3(0.05, 1.7, 0.82),
+                new THREE.Vector3(0.18, 1.65, 0.72)
+            ]);
+            const trunkGeo = new THREE.TubeGeometry(trunkCurve, 20, 0.13, 10, false);
+            const trunkMesh = new THREE.Mesh(trunkGeo, skinMaterial);
+            trunkMesh.castShadow = true;
+            ganeshaGroup.add(trunkMesh);
+
+            // Tusks (Left full, right broken tusk according to sacred tradition)
+            const tuskGeo = new THREE.ConeGeometry(0.05, 0.3, 12);
+            const ivoryMat = new THREE.MeshStandardMaterial({
+                color: 0xfffff0,
+                roughness: 0.3
+            });
+
+            // Left complete tusk
+            const leftTusk = new THREE.Mesh(tuskGeo, ivoryMat);
+            leftTusk.position.set(-0.25, 2.05, 0.62);
+            leftTusk.rotation.set(-0.5, 0, 0.3);
+            ganeshaGroup.add(leftTusk);
+
+            // Right broken tusk (shortened)
+            const rightTusk = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.12, 12), ivoryMat);
+            rightTusk.position.set(0.25, 2.1, 0.62);
+            rightTusk.rotation.set(-0.5, 0, -0.3);
+            ganeshaGroup.add(rightTusk);
+
+            // Ears (Large flapping fans)
+            const earGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.04, 16);
+
+            const leftEar = new THREE.Mesh(earGeo, skinMaterial);
+            leftEar.position.set(-0.65, 2.4, 0.05);
+            leftEar.rotation.set(0, 0.25, Math.PI / 2);
+            ganeshaGroup.add(leftEar);
+
+            const rightEar = new THREE.Mesh(earGeo, skinMaterial);
+            rightEar.position.set(0.65, 2.4, 0.05);
+            rightEar.rotation.set(0, -0.25, -Math.PI / 2);
+            ganeshaGroup.add(rightEar);
+
+            // Mukut (Grand Golden Crown)
+            const crownBaseGeo = new THREE.CylinderGeometry(0.4, 0.5, 0.25, 24);
+            const crownBase = new THREE.Mesh(crownBaseGeo, goldMaterial);
+            crownBase.position.set(0, 2.85, 0.05);
+            ganeshaGroup.add(crownBase);
+
+            const crownConeGeo = new THREE.ConeGeometry(0.35, 0.7, 24);
+            const crownCone = new THREE.Mesh(crownConeGeo, goldMaterial);
+            crownCone.position.set(0, 3.25, 0.05);
+            ganeshaGroup.add(crownCone);
+
+            // Ruby Jewel in Crown
+            const rubyGeo = new THREE.DodecahedronGeometry(0.1);
+            const rubyMat = new THREE.MeshStandardMaterial({
+                color: 0xff0044,
+                roughness: 0.1,
+                emissive: 0xaa0022
+            });
+            const ruby = new THREE.Mesh(rubyGeo, rubyMat);
+            ruby.position.set(0, 3.1, 0.35);
+            ganeshaGroup.add(ruby);
+
+            // Radiant Prabhavali (Divine Golden Aura Ring)
+            const auraGeo = new THREE.TorusGeometry(0.9, 0.04, 16, 40);
+            const auraMat = new THREE.MeshBasicMaterial({
+                color: 0xffd700
+            });
+            const auraMesh = new THREE.Mesh(auraGeo, auraMat);
+            auraMesh.position.set(0, 2.3, -0.25);
+            ganeshaGroup.add(auraMesh);
+
+            // Four Arms (Chaturbhuja) holding sacred items
+            const armGeo = new THREE.CylinderGeometry(0.08, 0.09, 0.6, 12);
+
+            // Front Left (Offering Modak)
+            const armFL = new THREE.Mesh(armGeo, skinMaterial);
+            armFL.position.set(-0.7, 1.4, 0.4);
+            armFL.rotation.set(-1.1, 0.3, -0.5);
+            ganeshaGroup.add(armFL);
+
+            // Front Right (Abhaya Mudra / Blessing)
+            const armFR = new THREE.Mesh(armGeo, skinMaterial);
+            armFR.position.set(0.7, 1.5, 0.35);
+            armFR.rotation.set(-1.2, -0.4, 0.5);
+            ganeshaGroup.add(armFR);
+
+            // Little Modak in hand
+            const handModakGeo = new THREE.ConeGeometry(0.12, 0.18, 12);
+            const handModak = new THREE.Mesh(handModakGeo, goldMaterial);
+            handModak.position.set(-0.95, 1.55, 0.7);
+            ganeshaGroup.add(handModak);
+
+            scene.add(ganeshaGroup);
+
+            /* ==========================================================================
+               PROCEDURAL TEMPLE TRACK & ASSET SYSTEM
+               ========================================================================== */
+            const TRACK_SEGMENT_LENGTH = 35;
+            const TOTAL_SEGMENTS = 7;
+            const trackSegments = [];
+
+            // Materials
+            const stoneFloorMat = new THREE.MeshStandardMaterial({
+                color: 0x3d170f,
+                roughness: 0.8,
+                metalness: 0.15
+            });
+
+            const pillarMat = new THREE.MeshStandardMaterial({
+                color: 0x240e09,
+                roughness: 0.7,
+                metalness: 0.2
+            });
+
+            const goldTrimMat = new THREE.MeshStandardMaterial({
+                color: 0xf39c12,
+                roughness: 0.3,
+                metalness: 0.8
+            });
+
+            function createPillar(x, z) {
+                const group = new THREE.Group();
+
+                const column = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 9, 16), pillarMat);
+                column.position.y = 4.5;
+                column.castShadow = true;
+                group.add(column);
+
+                const cap = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.6), goldTrimMat);
+                cap.position.y = 8.5;
+                group.add(cap);
+
+                // Fire Brazier Diya
+                const brazier = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.2, 0.4, 12), goldTrimMat);
+                brazier.position.set(x > 0 ? -0.8 : 0.8, 4.5, 0);
+                group.add(brazier);
+
+                // Point Light from Diya
+                const diyaLight = new THREE.PointLight(0xff7711, 0.8, 12);
+                diyaLight.position.set(brazier.position.x, 4.8, 0);
+                group.add(diyaLight);
+
+                group.position.set(x, 0, z);
+                return group;
+            }
+
+            function createTrackSegment(index) {
+                const segGroup = new THREE.Group();
+                const zPos = index * TRACK_SEGMENT_LENGTH;
+
+                // Temple Hall Floor
+                const floor = new THREE.Mesh(new THREE.BoxGeometry(11, 0.4, TRACK_SEGMENT_LENGTH), stoneFloorMat);
+                floor.position.set(0, -0.2, 0);
+                floor.receiveShadow = true;
+                segGroup.add(floor);
+
+                // Golden Track Dividers
+                for (const lx of [-1.6, 1.6]) {
+                    const line = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, TRACK_SEGMENT_LENGTH), goldTrimMat);
+                    line.position.set(lx, 0.01, 0);
+                    segGroup.add(line);
+                }
+
+                // Pillars on sides
+                for (let pz = -TRACK_SEGMENT_LENGTH / 2 + 3; pz < TRACK_SEGMENT_LENGTH / 2; pz += 11) {
+                    segGroup.add(createPillar(-5.6, pz));
+                    segGroup.add(createPillar(5.6, pz));
+                }
+
+                segGroup.position.z = zPos;
+                scene.add(segGroup);
+                return segGroup;
+            }
+
+            // Init Segments
+            for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+                trackSegments.push(createTrackSegment(i));
+            }
+
+            /* ==========================================================================
+               DYNAMIC ITEMS & OBSTACLES POOL
+               ========================================================================== */
+            const activeModaks = [];
+            const activeObstacles = [];
+
+            // Modak Geometry (Classic pleated dome with peaked tip)
+            function createModakMesh() {
+                const group = new THREE.Group();
+                const base = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), goldMaterial);
+                base.scale.set(1, 1.2, 1);
+                group.add(base);
+
+                const peak = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.45, 16), goldMaterial);
+                peak.position.y = 0.35;
+                group.add(peak);
+
+                group.position.y = 1.0;
+                return group;
+            }
+
+            // Obstacle 1: Demon Stone Totem (Must Dodge/Switch Lane)
+            function createTotemObstacle() {
+                const group = new THREE.Group();
+                const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.2, 1.0), new THREE.MeshStandardMaterial({
+                    color: 0x1f0907,
+                    roughness: 0.9,
+                    metalness: 0.1
+                }));
+                body.position.y = 1.6;
+                body.castShadow = true;
+                group.add(body);
+
+                // Glowing Demonic Eyes
+                const eyeGeo = new THREE.SphereGeometry(0.12, 8, 8);
+                const eyeMat = new THREE.MeshBasicMaterial({
+                    color: 0xff1100
+                });
+                const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+                leftEye.position.set(-0.4, 2.3, 0.52);
+                const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+                rightEye.position.set(0.4, 2.3, 0.52);
+                group.add(leftEye, rightEye);
+
+                return group;
+            }
+
+            // Obstacle 2: Sacred Flaming Beam (Must Slide Under)
+            function createBeamObstacle() {
+                const group = new THREE.Group();
+                const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 7.5), goldTrimMat);
+                beam.rotation.z = Math.PI / 2;
+                beam.position.y = 2.1; // Height requiring slide
+                group.add(beam);
+
+                const fireMesh = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.4, 0.4), new THREE.MeshBasicMaterial({
+                    color: 0xff5500
+                }));
+                fireMesh.position.y = 2.1;
+                group.add(fireMesh);
+
+                return group;
+            }
+
+            // Spawning Logic
+            function populateSegment(segmentZ) {
+                // 70% chance to spawn obstacles along the segment
+                if (Math.random() < 0.85 && segmentZ > 30) {
+                    const laneIdx = Math.floor(Math.random() * 3);
+                    const obsType = Math.random();
+
+                    if (obsType > 0.4) {
+                        // Lane blocker
+                        const totem = createTotemObstacle();
+                        totem.position.set(LANES[laneIdx], 0, segmentZ);
+                        totem.userData = {
+                            type: 'blocker',
+                            box: new THREE.Box3()
+                        };
+                        scene.add(totem);
+                        activeObstacles.push(totem);
+                    } else {
+                        // High beam requiring slide
+                        const beam = createBeamObstacle();
+                        beam.position.set(0, 0, segmentZ);
+                        beam.userData = {
+                            type: 'high_beam',
+                            box: new THREE.Box3()
+                        };
+                        scene.add(beam);
+                        activeObstacles.push(beam);
+                    }
+                }
+
+                // Spawn Golden Modaks
+                const modakLane = Math.floor(Math.random() * 3);
+                for (let m = 0; m < 4; m++) {
+                    const modak = createModakMesh();
+                    modak.position.set(LANES[modakLane], 1.0, segmentZ - 12 + (m * 2.5));
+                    scene.add(modak);
+                    activeModaks.push(modak);
+                }
+            }
+
+            /* ==========================================================================
+               PARTICLE SYSTEM (Divine Sparkles on Pickup)
+               ========================================================================== */
+            const particleCount = 80;
+            const particleGeo = new THREE.BufferGeometry();
+            const particlePositions = new Float32Array(particleCount * 3);
+            const particleVelocities = [];
+
+            for (let i = 0; i < particleCount; i++) {
+                particlePositions[i * 3 + 0] = 0;
+                particlePositions[i * 3 + 1] = -100;
+                particlePositions[i * 3 + 2] = 0;
+                particleVelocities.push(new THREE.Vector3());
+            }
+
+            particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+            const particleMat = new THREE.PointsMaterial({
+                color: 0xffd700,
+                size: 0.25,
+                transparent: true,
+                blending: THREE.AdditiveBlending
+            });
+            const particleSystem = new THREE.Points(particleGeo, particleMat);
+            scene.add(particleSystem);
+
+            function triggerSparkles(x, y, z) {
+                const pos = particleGeo.attributes.position.array;
+                for (let i = 0; i < particleCount; i++) {
+                    pos[i * 3 + 0] = x;
+                    pos[i * 3 + 1] = y;
+                    pos[i * 3 + 2] = z;
+
+                    particleVelocities[i].set(
+                        (Math.random() - 0.5) * 8,
+                        Math.random() * 7 + 2,
+                        (Math.random() - 0.5) * 8
+                    );
+                }
+                particleGeo.attributes.position.needsUpdate = true;
+            }
+
+            function updateParticles(delta) {
+                const pos = particleGeo.attributes.position.array;
+                for (let i = 0; i < particleCount; i++) {
+                    if (pos[i * 3 + 1] > -50) {
+                        pos[i * 3 + 0] += particleVelocities[i].x * delta;
+                        pos[i * 3 + 1] += particleVelocities[i].y * delta;
+                        pos[i * 3 + 2] += particleVelocities[i].z * delta;
+                        particleVelocities[i].y -= 9.8 * delta; // Gravity
+                    }
+                }
+                particleGeo.attributes.position.needsUpdate = true;
+            }
+
+            /* ==========================================================================
+               VIGHNAHARTA SHOCKWAVE (Ultimate Blast)
+               ========================================================================== */
+            const blastGeo = new THREE.SphereGeometry(1, 32, 32);
+            const blastMat = new THREE.MeshBasicMaterial({
+                color: 0xffe600,
+                transparent: true,
+                opacity: 0.0,
+                wireframe: true
+            });
+            const blastMesh = new THREE.Mesh(blastGeo, blastMat);
+            scene.add(blastMesh);
+            let isBlasting = false;
+            let blastRadius = 1;
+
+            function triggerUltimate() {
+                if (divinePower < 100 || !isPlaying) return;
+                divinePower = 0;
+                updateUI();
+                playSound('blast');
+
+                isBlasting = true;
+                blastRadius = 1;
+                blastMesh.position.copy(ganeshaGroup.position);
+                blastMesh.position.y += 1.5;
+                blastMat.opacity = 0.8;
+
+                // Vaporize nearby obstacles ahead
+                for (let i = activeObstacles.length - 1; i >= 0; i--) {
+                    const obs = activeObstacles[i];
+                    if (obs.position.z > ganeshaGroup.position.z && obs.position.z < ganeshaGroup.position.z + 40) {
+                        triggerSparkles(obs.position.x, 2, obs.position.z);
+                        scene.remove(obs);
+                        activeObstacles.splice(i, 1);
+                        score += 5; // Bonus points for clearing
+                    }
+                }
+            }
+
+            /* ==========================================================================
+               INPUT HANDLING
+               ========================================================================== */
+            function moveLane(dir) {
+                currentLane = Math.max(0, Math.min(2, currentLane + dir));
+            }
+
+            function triggerJump() {
+                if (playerY <= 0.05 && !isSliding) {
+                    playerVelocityY = JUMP_FORCE;
+                    playSound('jump');
+                }
+            }
+
+            function triggerSlide() {
+                if (playerY <= 0.05 && !isSliding) {
+                    isSliding = true;
+                    slideTimer = 0.65;
+                }
+            }
+
+            window.addEventListener('keydown', (e) => {
+                if (!isPlaying) return;
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLane(-1);
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveLane(1);
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') triggerJump();
+                if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') triggerSlide();
+                if (e.key === 'e' || e.key === 'E') triggerUltimate();
+            });
+
+            // Touch Swipe Detection
+            let touchStartX = 0;
+            let touchStartY = 0;
+            window.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, {
+                passive: true
+            });
+
+            window.addEventListener('touchend', (e) => {
+                if (!isPlaying) return;
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+
+                if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+                    moveLane(dx > 0 ? 1 : -1);
+                } else if (Math.abs(dy) > 30) {
+                    if (dy < 0) triggerJump();
+                    else triggerSlide();
+                }
+            }, {
+                passive: true
+            });
+
+            /* ==========================================================================
+               GAME LOOP & LOGIC
+               ========================================================================== */
+            function startGame() {
+                initAudio();
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('game-over-screen').style.display = 'none';
+
+                // Reset state
+                score = 0;
+                divinePower = 0;
+                speed = baseSpeed;
+                currentLane = 1;
+                playerY = 0;
+                playerVelocityY = 0;
+                isSliding = false;
+                ganeshaGroup.position.set(0, 0, 0);
+
+                // Clean existing items
+                for (const m of activeModaks) scene.remove(m);
+                for (const o of activeObstacles) scene.remove(o);
+                activeModaks.length = 0;
+                activeObstacles.length = 0;
+
+                // Reset track positions
+                for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+                    trackSegments[i].position.z = i * TRACK_SEGMENT_LENGTH;
+                    if (i > 1) populateSegment(trackSegments[i].position.z);
+                }
+
+                updateUI();
+                isPlaying = true;
+            }
+
+            function gameOver() {
+                isPlaying = false;
+                playSound('crash');
+                document.getElementById('final-score').textContent = score;
+                document.getElementById('game-over-screen').style.display = 'flex';
+            }
+
+            function updateUI() {
+                document.getElementById('score-val').textContent = score;
+                const barFill = document.getElementById('ultimate-bar-fill');
+                const hint = document.getElementById('blast-hint');
+                barFill.style.width = divinePower + '%';
+                hint.style.display = divinePower >= 100 ? 'block' : 'none';
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const delta = Math.min(clock.getDelta(), 0.1);
+
+                if (isPlaying) {
+                    // Progressive speed ramp
+                    speed += delta * 0.15;
+                    const forwardMove = speed * delta;
+                    ganeshaGroup.position.z += forwardMove;
+
+                    // Smooth Lane Switching (Lerp)
+                    const targetX = LANES[currentLane];
+                    ganeshaGroup.position.x += (targetX - ganeshaGroup.position.x) * 14 * delta;
+
+                    // Jump & Gravity Physics
+                    playerVelocityY += GRAVITY * delta;
+                    playerY += playerVelocityY * delta;
+                    if (playerY <= 0) {
+                        playerY = 0;
+                        playerVelocityY = 0;
+                    }
+
+                    // Slide Timer & Posture
+                    if (isSliding) {
+                        slideTimer -= delta;
+                        ganeshaGroup.scale.set(1.1, 0.45, 1.1); // Flatten for sliding
+                        if (slideTimer <= 0) {
+                            isSliding = false;
+                            ganeshaGroup.scale.set(1, 1, 1);
+                        }
+                    } else {
+                        ganeshaGroup.scale.set(1, 1, 1);
+                    }
+
+                    ganeshaGroup.position.y = playerY;
+
+                    // Running Bob & Ear Sway Animation
+                    const runCycle = clock.getElapsedTime() * 12;
+                    if (playerY <= 0.01 && !isSliding) {
+                        ganeshaGroup.rotation.z = Math.sin(runCycle) * 0.04;
+                        leftEar.rotation.y = 0.25 + Math.sin(runCycle) * 0.1;
+                        rightEar.rotation.y = -0.25 - Math.sin(runCycle) * 0.1;
+                    }
+
+                    // Camera Follow with smooth elevation
+                    camera.position.set(
+                        ganeshaGroup.position.x * 0.35,
+                        ganeshaGroup.position.y + 4.8,
+                        ganeshaGroup.position.z - 7.5
+                    );
+                    camera.lookAt(
+                        ganeshaGroup.position.x * 0.5,
+                        ganeshaGroup.position.y + 2.0,
+                        ganeshaGroup.position.z + 8.0
+                    );
+
+                    // Sunlight moves along with the runner
+                    sunLight.position.z = ganeshaGroup.position.z - 15;
+                    sunLight.target = ganeshaGroup;
+
+                    // Recycle Track Segments
+                    for (const seg of trackSegments) {
+                        if (seg.position.z < ganeshaGroup.position.z - TRACK_SEGMENT_LENGTH) {
+                            seg.position.z += TOTAL_SEGMENTS * TRACK_SEGMENT_LENGTH;
+                            populateSegment(seg.position.z);
+                        }
+                    }
+
+                    // Modaks Update & Collection Check
+                    for (let i = activeModaks.length - 1; i >= 0; i--) {
+                        const modak = activeModaks[i];
+                        modak.rotation.y += 3.5 * delta;
+
+                        const dist = ganeshaGroup.position.distanceTo(modak.position);
+                        if (dist < 1.6) {
+                            // Picked Up Modak!
+                            playSound('chime');
+                            triggerSparkles(modak.position.x, modak.position.y, modak.position.z);
+                            score++;
+                            divinePower = Math.min(100, divinePower + 6.5);
+                            updateUI();
+                            scene.remove(modak);
+                            activeModaks.splice(i, 1);
+                            continue;
+                        }
+
+                        // Cleanup behind player
+                        if (modak.position.z < ganeshaGroup.position.z - 15) {
+                            scene.remove(modak);
+                            activeModaks.splice(i, 1);
+                        }
+                    }
+
+                    // Obstacles & Collision Check
+                    const playerBox = new THREE.Box3().setFromObject(ganeshaGroup);
+
+                    for (let i = activeObstacles.length - 1; i >= 0; i--) {
+                        const obs = activeObstacles[i];
+                        const obsBox = obs.userData.box.setFromObject(obs);
+
+                        if (playerBox.intersectsBox(obsBox)) {
+                            gameOver();
+                            break;
+                        }
+
+                        // Cleanup
+                        if (obs.position.z < ganeshaGroup.position.z - 15) {
+                            scene.remove(obs);
+                            activeObstacles.splice(i, 1);
+                        }
+                    }
+
+                    // Shockwave expansion animation
+                    if (isBlasting) {
+                        blastRadius += 45 * delta;
+                        blastMesh.scale.set(blastRadius, blastRadius, blastRadius);
+                        blastMat.opacity -= 1.2 * delta;
+                        if (blastMat.opacity <= 0) {
+                            isBlasting = false;
+                            blastMat.opacity = 0;
+                        }
+                    }
+
+                    updateParticles(delta);
+                }
+
+                renderer.render(scene, camera);
+            }
+
+            // Responsive Canvas Resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Start Animation Loop
+            animate();
+        </script>
+    </body>
+
+    </html>
+</body>
+
+</html>
